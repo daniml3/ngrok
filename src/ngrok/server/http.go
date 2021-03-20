@@ -30,6 +30,11 @@ Content-Length: 12
 
 Bad Request
 `
+	Redirect = `HTTP/1.0 302 Moved Temporarily
+Location: %s
+Content-Length: %d
+
+`
 )
 
 // Listens for new http(s) connections from the public internet
@@ -57,6 +62,8 @@ func startHttpListener(addr string, tlsCfg *tls.Config) (listener *conn.Listener
 
 // Handles a new http connection from the public internet
 func httpHandler(c conn.Conn, proto string) {
+	var FallbackUrl string = "https://me.danielml.ml"
+
 	defer c.Close()
 	defer func() {
 		// recover from failures
@@ -90,8 +97,8 @@ func httpHandler(c conn.Conn, proto string) {
 	c.Debug("Found hostname %s in request", host)
 	tunnel := tunnelRegistry.Get(fmt.Sprintf("%s://%s", proto, host))
 	if tunnel == nil {
-		c.Info("No tunnel found for hostname %s", host)
-		c.Write([]byte(fmt.Sprintf(NotFound, len(host)+18, host)))
+		c.Info("No tunnel found for hostname %s, redirecting to %s", host, FallbackUrl)
+		c.Write([]byte(fmt.Sprintf(Redirect, FallbackUrl, len(FallbackUrl)+10)))
 		return
 	}
 
